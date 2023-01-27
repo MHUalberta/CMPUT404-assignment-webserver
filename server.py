@@ -1,5 +1,5 @@
 #  coding: utf-8
-import socketserver
+import socketserver, os
 from pathlib import Path
 
 # This fork is written by: Mohammad Hammad
@@ -49,9 +49,9 @@ class MyWebServer(socketserver.BaseRequestHandler):
 
 
     def handle_get(self, url):
+        #We first perform some url checking to see if any redirection needs to happen
         url_type = Path(url).suffix[1:]
-
-        #Correct path ending by redirecting
+        #Correct path ending if needed
         if url_type=="" and url[-1] != "/":
             self.handle_redirect(url)
             return
@@ -61,8 +61,17 @@ class MyWebServer(socketserver.BaseRequestHandler):
             url = url + "index.html"
             url_type = "html"
 
+        #Get absolute path of URL requests
+        www_path = os.path.abspath(f"./www{url}")
+
+        #Check that the request is only in www and lower, AND NOT HIGHER (SECURITY ISSUE!!!)
+        if not www_path.startswith(os.path.abspath("./www")):
+            self.handle_notfound()
+            return
+
+        #Process request now
         try:
-            with open(f"./www{url}", "r") as file:  #url construction accounts for html and css mime-types, please note that this method can't be consistently extended to other mime-types
+            with open(www_path, "r") as file:  #url construction accounts for html and css mime-types, please note that this method can't be consistently extended to other mime-types
                 page = file.read()
 
         except FileNotFoundError:
